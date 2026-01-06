@@ -1,0 +1,54 @@
+service: outfit-bundle-api
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 3008
+  timeout: 300
+  
+  environment:
+    AWS_DEFAULT_REGION: us-east-1
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:Query
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/aldo-product-metadata
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource:
+            - arn:aws:s3:::aldo-images/*
+        - Effect: Allow
+          Action:
+            - bedrock:InvokeModel
+          Resource:
+            - arn:aws:bedrock:${self:provider.region}::foundation-model/*
+
+functions:
+  outfitBundles:
+    handler: outfit_bundle_api.lambda_handler
+    events:
+      - http:
+          path: outfit-bundles
+          method: post
+          cors: true
+      - http:
+          path: health
+          method: get
+          cors: true
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
